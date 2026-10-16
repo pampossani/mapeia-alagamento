@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alagamentos em Jundiaí (projeto independente)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; }
+  header { padding: 10px 14px; background: #0b3d5c; color: #fff; }
+  header h1 { margin: 0; font-size: 1.1rem; }
+  header p { margin: 2px 0 0; font-size: .8rem; opacity: .85; }
+  #filtros { padding: 8px 14px; background: #eef3f6; font-size: .9rem; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  #mapa { height: calc(100vh - 118px); }
+  .dica { font-size: .8rem; color: #456; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Alagamentos em Jundiaí</h1>
+  <p>Projeto independente, não oficial. Em emergência, ligue para a Defesa Civil: 199.</p>
+</header>
+<div id="filtros">
+  <label><input type="checkbox" data-nivel="leve" checked> Leve</label>
+  <label><input type="checkbox" data-nivel="moderado" checked> Moderado</label>
+  <label><input type="checkbox" data-nivel="grave" checked> Grave</label>
+  <span class="dica">Clique no mapa para copiar as coordenadas de um novo ponto.</span>
+</div>
+<div id="mapa"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// ============ DADOS: edite aqui para cadastrar pontos ============
+// nivel: "leve" | "moderado" | "grave"
+const pontos = [
+  {
+    nome: "Ponto de exemplo (apague ou edite)",
+    bairro: "Centro",
+    lat: -23.1857, lng: -46.8978,
+    nivel: "leve",
+    data: "2026-01-01",
+    obs: "Este é só um exemplo de como cadastrar um ponto."
+  }
+];
+// =================================================================
+
+const cores = { leve: "#e0b400", moderado: "#e8731a", grave: "#c0262d" };
+
+const mapa = L.map("mapa").setView([-23.1857, -46.8978], 12);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+  subdomains: "abcd",
+  maxZoom: 19,
+  attribution: "&copy; Colaboradores do OpenStreetMap &copy; CARTO"
+}).addTo(mapa);
+
+const camadas = { leve: L.layerGroup(), moderado: L.layerGroup(), grave: L.layerGroup() };
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+pontos.forEach(p => {
+  const m = L.circleMarker([p.lat, p.lng], {
+    radius: 10, color: "#fff", weight: 2,
+    fillColor: cores[p.nivel], fillOpacity: 0.9
+  });
+  m.bindPopup(
+    "<strong>" + esc(p.nome) + "</strong><br>" +
+    esc(p.bairro) + " · " + esc(p.nivel) + "<br>" +
+    esc(p.data) + "<br>" + esc(p.obs)
+  );
+  camadas[p.nivel].addLayer(m);
+});
+Object.values(camadas).forEach(c => c.addTo(mapa));
+
+document.querySelectorAll("#filtros input").forEach(cb => {
+  cb.addEventListener("change", () => {
+    const c = camadas[cb.dataset.nivel];
+    cb.checked ? c.addTo(mapa) : mapa.removeLayer(c);
+  });
+});
+
+mapa.on("click", e => {
+  const txt = "lat: " + e.latlng.lat.toFixed(5) + ", lng: " + e.latlng.lng.toFixed(5);
+  L.popup().setLatLng(e.latlng).setContent(txt).openOn(mapa);
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).catch(() => {});
+});
+</script>
+</body>
+</html>
